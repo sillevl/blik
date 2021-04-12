@@ -79,8 +79,10 @@ void Blik::canRead() {
 
     // single frame
     if((msg.data[0] & 0xF0) == 0x00) {
-        BlikMessage message = {msg.id, {0}, msg.len};
-        std::memcpy(message.data, msg.data + 1, msg.len - 1);
+
+        uint8_t size = msg.data[0] & 0x0F;
+        BlikMessage message = {msg.id, {0}, size};
+        std::memcpy(message.data, msg.data + 1, size);
 
         messageCallback(message);
         NOTICE("Received blik message");
