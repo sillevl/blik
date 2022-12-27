@@ -37,12 +37,11 @@ class Blik {
         EventQueue queue;
         LowPowerTimer timer;
 
-        static const uint8_t BUFFER_SIZE = 32;
         static const uint32_t EMPTY = 0xFFFFFFFF;
         
         // TODO: this does not work yet....
         //static constexpr std::chrono::seconds BUFFER_TIMEOUT = 1s;
-        BlikReceiveBuffer buffer[BUFFER_SIZE];
+        BlikReceiveBuffer buffer[MBED_CONF_BLIK_RECEIVE_BUFFER_SIZE];
 
         mbed::Callback<void(BlikMessage)> messageCallback;
         
