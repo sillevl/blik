@@ -1,6 +1,9 @@
 {
     "name": "blik",
-    "requires": ["mbed-trace"],
+    "requires": [
+        "mbed-trace",
+        "events"
+    ],
     "config": {
         "packet-timeout": {
             "help": "Time (in seconds) until packet is removed from receive buffer. This could happen when not all packets from a single message where received.",

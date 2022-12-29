@@ -18,12 +18,12 @@ struct BlikReceiveBuffer {
     uint8_t size;
     int8_t lastframeindex;
     uint8_t bufferSize;
-    std::chrono::time_point<Kernel::Clock> timestamp;
+    std::chrono::time_point<mbed::internal::OsClock> timestamp;
 };
 
 class Blik {
     public:
-        Blik(CAN* can);
+        Blik(CAN* can, events::EventQueue* event_queue);
         void send(uint32_t id, uint8_t* data, uint8_t size);
         void onMessage(mbed::Callback<void(BlikMessage)> callback);
 
@@ -33,7 +33,6 @@ class Blik {
         void canRead();
         void canReadInterrupt();
 
-        Thread eventThread;
         EventQueue queue;
         LowPowerTimer timer;
 
@@ -41,7 +40,7 @@ class Blik {
         
         // TODO: this does not work yet....
         //static constexpr std::chrono::seconds BUFFER_TIMEOUT = 1s;
-        BlikReceiveBuffer buffer[MBED_CONF_BLIK_RECEIVE_BUFFER_SIZE];
+        std::array<BlikReceiveBuffer, MBED_CONF_BLIK_RECEIVE_BUFFER_SIZE> buffer;
 
         mbed::Callback<void(BlikMessage)> messageCallback;
         

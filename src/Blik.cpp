@@ -6,17 +6,16 @@ using namespace std::chrono;
 
 #define TRACE_GROUP "BLIK"
 
-Blik::Blik(CAN* can): eventThread(osPriorityHigh), queue(32 * EVENTS_EVENT_SIZE) {
+Blik::Blik(CAN* can, events::EventQueue* event_queue): queue(32 * EVENTS_EVENT_SIZE) {
     this->can = can;
     tr_info("*** Start Blik ***\r\n");
 
     timer.start();
-    tr_debug("Create blik message buffer for %d message", MBED_CONF_BLIK_RECEIVE_BUFFER_SIZE);
-    for(uint8_t i = 0; i < MBED_CONF_BLIK_RECEIVE_BUFFER_SIZE; i++) {
-        buffer[i] = { EMPTY, { 0 }, 0, 0, 0, Kernel::Clock::now() };
+    tr_debug("Create blik message buffer for %d message", buffer.size());
+    for(uint8_t i = 0; i < buffer.size(); i++) {
+        buffer[i] = BlikReceiveBuffer{ EMPTY, { 0 }, 0, 0, 0, Kernel::Clock::now() };
     }
-
-    eventThread.start(callback(&queue, &EventQueue::dispatch_forever));
+    queue.chain(event_queue);
     can->attach(callback(this, &Blik::canReadInterrupt), CAN::RxIrq);
 
     // TODO: set can filter() to receive only messages for this device
@@ -91,7 +90,7 @@ void Blik::canRead() {
     // first frame
     if((msg.data[0] & 0xF0) == 0x10) {
         tr_debug("Received first frame");
-        for(uint8_t i = 0; i < MBED_CONF_BLIK_RECEIVE_BUFFER_SIZE; i++) {
+        for(uint8_t i = 0; i < buffer.size(); i++) {
             BlikReceiveBuffer* buf = &buffer[i];
             if(buf->canId == EMPTY) {
                 uint8_t payloadSize = msg.len - 2; // 2 == header size
@@ -111,7 +110,7 @@ void Blik::canRead() {
     // consecutive frame
     if((msg.data[0] & 0xF0) == 0x20) {
         tr_info("Received consecutive frame");
-        for(uint8_t i = 0; i < MBED_CONF_BLIK_RECEIVE_BUFFER_SIZE; i++){
+        for(uint8_t i = 0; i < buffer.size(); i++){
             BlikReceiveBuffer* buf = &buffer[i];
             if(buf->canId == msg.id){
                 uint8_t frameindex = msg.data[0] & 0x0F;
@@ -142,7 +141,7 @@ void Blik::canRead() {
     } 
 
     tr_info("Cleaning up old messages from buffer");
-    for(uint8_t i = 0; i < MBED_CONF_BLIK_RECEIVE_BUFFER_SIZE; i++) {
+    for(uint8_t i = 0; i < buffer.size(); i++) {
         BlikReceiveBuffer* buf = &buffer[i];
         // TODO: use BUFFER_TIMEOUT from header file instead, does not work yet
         if(buf->canId != EMPTY && Kernel::Clock::now() - buf->timestamp > std::chrono::seconds(MBED_CONF_BLIK_PACKET_TIMEOUT)) {
